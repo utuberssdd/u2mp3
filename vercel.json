@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm install && pnpm --filter @workspace/api-spec run codegen && PORT=3000 BASE_PATH=/ pnpm --filter @workspace/yt-mp3 run build",
+  "outputDirectory": "artifacts/yt-mp3/dist/public",
+  "installCommand": "pnpm install",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index"
+    }
+  ],
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
+}

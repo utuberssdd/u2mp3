@@ -1,0 +1,13 @@
+packages:
+  "framer-motion": "For smooth entry animations, layout transitions, and loading states"
+  "clsx": "For conditional tailwind class merging"
+  "tailwind-merge": "For merging tailwind classes efficiently"
+
+images:
+  - path: "artifacts/yt-mp3/public/images/bg-pattern.png"
+    description: "Very dark, subtle, abstract geometric mesh pattern with faint crimson red light leaks, suitable for a dark mode tech background, highly minimal and premium"
+    aspect_ratio: "16:9"
+
+notes:
+  - Backend endpoints are already defined in generated api-client-react.
+  - Download functionality uses standard browser navigation to the download endpoint which streams the file.

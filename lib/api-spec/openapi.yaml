@@ -1,0 +1,115 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: youtube
+    description: YouTube download operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /youtube/info:
+    get:
+      operationId: getVideoInfo
+      tags: [youtube]
+      summary: Get YouTube video info
+      description: Fetches metadata for a YouTube video
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+          description: YouTube video URL
+      responses:
+        "200":
+          description: Video info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoInfo"
+        "400":
+          description: Invalid URL or error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /youtube/download:
+    get:
+      operationId: downloadMp3
+      tags: [youtube]
+      summary: Download YouTube video as MP3
+      description: Streams MP3 audio of the YouTube video
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+          description: YouTube video URL
+      responses:
+        "200":
+          description: MP3 audio file stream
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Invalid URL or error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    VideoInfo:
+      type: object
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        duration:
+          type: number
+        thumbnail:
+          type: string
+        videoId:
+          type: string
+      required:
+        - title
+        - author
+        - duration
+        - thumbnail
+        - videoId
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
