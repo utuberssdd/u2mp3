@@ -99,21 +99,9 @@ export default function Home() {
 
         {/* Ad Banner */}
         <div className="mt-4 w-full flex justify-center">
-          <div style={{
-            width: "728px",
-            height: "90px",
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            color: "white",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "4px",
-            boxSizing: "border-box",
-            overflow: "hidden",
-            maxWidth: "100%",
-          }}>
-            <h3 style={{ margin: 0, fontSize: "20px" }}>728x90 Ad</h3>
-          </div>
+          <!-- Bidroy - Ad Display Code -->
+<div id="adm-container-362"></div><script data-cfasync="false" async type="text/javascript" src="//digitalroys.com/display/items.php?362&48&728&90&4&0&64"></script>
+<!-- Bidroy - Ad Display Code -->
         </div>
 
         {/* Results / States */}
