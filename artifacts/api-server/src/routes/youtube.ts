@@ -94,6 +94,7 @@ router.get("/info", infoRateLimit, async (req, res) => {
     // Primary: yt-dlp with proxy (gets full info including duration)
     const { stdout } = await execFileAsync("yt-dlp", [
       "--dump-json", "--no-playlist", "--no-warnings",
+      "--extractor-args", "youtube:player_client=ios",
       "--proxy", getProxy(),
       url,
     ], { timeout: YTDLP_INFO_TIMEOUT_MS });
@@ -216,6 +217,7 @@ router.get("/download", downloadRateLimit, async (req, res) => {
       await new Promise<void>((resolve, reject) => {
         const ytdlpArgs = [
           "--no-playlist", "--no-warnings",
+          "--extractor-args", "youtube:player_client=ios",
           ...(proxy ? ["--proxy", proxy] : []),
           "-f", "bestaudio[ext=m4a]/bestaudio/best",
           "--extract-audio", "--audio-format", "mp3", "--audio-quality", "0",
