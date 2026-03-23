@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Youtube, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { VideoCard } from "@/components/video-card";
@@ -99,6 +99,7 @@ export default function Home() {
 
         {/* Ad Banner */}
         <div className="mt-4 w-full flex justify-center">
+          <div id="adm-container-362" />
         </div>
 
         {/* Results / States */}
