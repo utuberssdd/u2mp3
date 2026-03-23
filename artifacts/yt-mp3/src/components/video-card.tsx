@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Download, PlayCircle, Clock, User, Loader2, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Download, PlayCircle, Clock, User, CheckCircle2 } from "lucide-react";
 import { formatDuration } from "@/lib/utils";
 import { VideoInfo } from "@workspace/api-client-react/src/generated/api.schemas";
 import { getDownloadUrl } from "@/hooks/use-youtube";
@@ -10,31 +10,102 @@ interface VideoCardProps {
   url: string;
 }
 
+const PROCESSING_STEPS = [
+  { label: "Connecting to YouTube...", icon: "🔗", duration: 1800 },
+  { label: "Extracting audio stream...", icon: "🎵", duration: 2200 },
+  { label: "Converting to MP3...", icon: "⚙️", duration: 2000 },
+  { label: "Finalizing download...", icon: "📦", duration: 1500 },
+];
+
 export function VideoCard({ video, url }: VideoCardProps) {
   const downloadUrl = getDownloadUrl(url);
-  const [dlState, setDlState] = useState<"idle" | "loading" | "done">("idle");
+  const [dlState, setDlState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [dlError, setDlError] = useState<string | null>(null);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
 
-  function handleDownload(e: React.MouseEvent<HTMLAnchorElement>) {
-    if (dlState !== "idle") return;
+  useEffect(() => {
+    if (dlState !== "loading") {
+      setStepIndex(0);
+      setProgress(0);
+      return;
+    }
+
+    let elapsed = 0;
+    const totalDuration = PROCESSING_STEPS.reduce((s, st) => s + st.duration, 0);
+    let currentStep = 0;
+
+    const interval = setInterval(() => {
+      elapsed += 80;
+      setProgress(Math.min((elapsed / totalDuration) * 100, 95));
+
+      let acc = 0;
+      for (let i = 0; i < PROCESSING_STEPS.length; i++) {
+        acc += PROCESSING_STEPS[i].duration;
+        if (elapsed < acc) {
+          if (currentStep !== i) {
+            currentStep = i;
+            setStepIndex(i);
+          }
+          break;
+        }
+      }
+    }, 80);
+
+    return () => clearInterval(interval);
+  }, [dlState]);
+
+  async function handleDownload(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (dlState !== "idle" && dlState !== "error") return;
     e.preventDefault();
     setDlState("loading");
+    setDlError(null);
 
-    // Trigger real download after short delay to let state render
-    setTimeout(() => {
+    try {
+      const response = await fetch(downloadUrl);
+
+      if (!response.ok) {
+        let errorMsg = "Could not download this video. Please try again.";
+        try {
+          const data = await response.json();
+          if (data.error) errorMsg = data.error;
+        } catch {}
+        setDlState("error");
+        setDlError(errorMsg);
+        return;
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        let errorMsg = "Could not download this video. Please try again.";
+        try {
+          const data = await response.json();
+          if (data.error) errorMsg = data.error;
+        } catch {}
+        setDlState("error");
+        setDlError(errorMsg);
+        return;
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = "";
+      a.href = blobUrl;
+      a.download = `${video.title || "audio"}.mp3`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
-      // Switch to "done" after a few seconds
-      setTimeout(() => {
-        setDlState("done");
-        setTimeout(() => setDlState("idle"), 3000);
-      }, 2000);
-    }, 100);
+      setDlState("done");
+      setTimeout(() => setDlState("idle"), 4000);
+    } catch {
+      setDlState("error");
+      setDlError("Download failed. Please check your connection and try again.");
+    }
   }
+
+  const currentStep = PROCESSING_STEPS[stepIndex];
 
   return (
     <motion.div
@@ -59,7 +130,6 @@ export function VideoCard({ video, url }: VideoCardProps) {
             {formatDuration(video.duration)}
           </div>
           
-          {/* Decorative Play Button Overlay */}
           <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="bg-primary/90 text-white rounded-full p-3 shadow-[0_0_30px_rgba(255,0,0,0.5)]">
               <PlayCircle className="w-8 h-8" />
@@ -69,7 +139,6 @@ export function VideoCard({ video, url }: VideoCardProps) {
 
         {/* Content Section */}
         <div className="p-6 md:p-8 flex flex-col justify-between flex-1 relative">
-          {/* Subtle gradient glow inside card */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
           
           <div className="relative z-10">
@@ -95,21 +164,31 @@ export function VideoCard({ video, url }: VideoCardProps) {
               onClick={handleDownload}
               className={`inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-xl font-semibold text-base shadow-lg transition-all duration-300 select-none
                 ${dlState === "idle" ? "bg-primary text-white shadow-primary/30 hover:bg-primary/90 active:scale-95 cursor-pointer group/btn" : ""}
-                ${dlState === "loading" ? "bg-primary/70 text-white cursor-not-allowed shadow-primary/20" : ""}
+                ${dlState === "loading" ? "bg-primary/80 text-white cursor-not-allowed shadow-primary/20" : ""}
                 ${dlState === "done" ? "bg-green-600 text-white shadow-green-600/30 cursor-default" : ""}
+                ${dlState === "error" ? "bg-red-600 text-white shadow-red-600/30 hover:bg-red-500 active:scale-95 cursor-pointer" : ""}
               `}
             >
-              {dlState === "idle" && (
+              {(dlState === "idle" || dlState === "error") && (
                 <>
                   <Download className="w-5 h-5 group-hover/btn:-translate-y-1 transition-transform" />
-                  Download MP3
+                  {dlState === "error" ? "Try Again" : "Download MP3"}
                 </>
               )}
               {dlState === "loading" && (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Preparing download…
-                </>
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={stepIndex}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span>{currentStep.icon}</span>
+                    {currentStep.label}
+                  </motion.span>
+                </AnimatePresence>
               )}
               {dlState === "done" && (
                 <>
@@ -119,22 +198,41 @@ export function VideoCard({ video, url }: VideoCardProps) {
               )}
             </a>
 
-            {/* Progress bar shown while loading */}
             {dlState === "loading" && (
-              <div className="mt-3 w-full sm:w-64 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-primary rounded-full"
-                  initial={{ width: "0%" }}
-                  animate={{ width: "90%" }}
-                  transition={{ duration: 4, ease: "easeInOut" }}
-                />
+              <div className="mt-4 w-full sm:w-72">
+                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-primary rounded-full"
+                    style={{ width: `${progress}%` }}
+                    transition={{ duration: 0.08 }}
+                  />
+                </div>
+                <div className="flex justify-between mt-2">
+                  {PROCESSING_STEPS.map((step, i) => (
+                    <motion.div
+                      key={i}
+                      className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
+                        i <= stepIndex ? "bg-primary" : "bg-white/20"
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
-            <p className="text-center sm:text-left text-xs text-muted-foreground mt-4 flex items-center gap-1.5 justify-center sm:justify-start">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              High quality audio extraction
-            </p>
+            {dlError && (
+              <p className="text-center sm:text-left text-xs text-red-400 mt-3 flex items-center gap-1.5 justify-center sm:justify-start">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                {dlError}
+              </p>
+            )}
+
+            {!dlError && (
+              <p className="text-center sm:text-left text-xs text-muted-foreground mt-4 flex items-center gap-1.5 justify-center sm:justify-start">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                High quality audio extraction
+              </p>
+            )}
           </div>
         </div>
         
