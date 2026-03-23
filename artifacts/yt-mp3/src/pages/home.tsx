@@ -99,9 +99,6 @@ export default function Home() {
 
         {/* Ad Banner */}
         <div className="mt-4 w-full flex justify-center">
-          <!-- Bidroy - Ad Display Code -->
-<div id="adm-container-362"></div><script data-cfasync="false" async type="text/javascript" src="//digitalroys.com/display/items.php?362&48&728&90&4&0&64"></script>
-<!-- Bidroy - Ad Display Code -->
         </div>
 
         {/* Results / States */}
